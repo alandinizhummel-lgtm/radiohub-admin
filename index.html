@@ -92,7 +92,7 @@ input[type="file"]{display:none;}
 <!-- LOGIN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
-    <h1 class="login-title">RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v2.3</span></h1>
+    <h1 class="login-title">RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v3.0</span></h1>
     <p class="login-sub">Entre com suas credenciais</p>
     <form onsubmit="login(event)">
       <div class="form-group">
@@ -111,7 +111,7 @@ input[type="file"]{display:none;}
 <!-- ADMIN -->
 <div class="admin-screen" id="admin-screen">
   <div class="header">
-    <h1 class="header-title">📝 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v2.3</span></h1>
+    <h1 class="header-title">📝 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v3.0</span></h1>
     <button class="btn-logout" onclick="logout()">Sair</button>
   </div>
 
@@ -240,11 +240,11 @@ input[type="file"]{display:none;}
 <div class="toast" id="toast">✓ Salvo com sucesso!</div>
 
 <script>
-// CONFIGURAÇÃO SUPABASE (SEM CONFLITOS!)
-const SB_URL = 'https://bfvwubfjvktmsxznxgcr.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmdnd1YmZqdmt0bXN4em54Z2NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5NDQ3NTUsImV4cCI6MjA1NDUyMDc1NX0.cB99JLXy8kOdxXpYh7RB9kl_zBWwB6cI4Bfd7A2JKNY';
+// CONFIGURAÇÃO SUPABASE (PROJETO NOVO: radiohub-br)
+const SB_URL = 'https://pvwkwjzwmkyzgwflloqh.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2d2t3anp3bWt5emd3ZmxucXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4OTE2MzQsImV4cCI6MjA4NjQ2NzYzNH0.d9WVqxNLvskhrSluI4FeBnKpYd4CBtP7vk-pl8l1Vww';
 
-// Cliente Supabase (NOVO NOME - SEM CONFLITO!)
+// Cliente Supabase
 window.sb = window.supabase.createClient(SB_URL, SB_KEY);
 
 let currentTab = 'templates';
