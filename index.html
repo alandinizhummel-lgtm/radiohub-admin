@@ -86,7 +86,7 @@ input[type="file"]{display:none;}
 <!-- LOGIN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
-    <h1 class="login-title">🔥 RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v5.2</span></h1>
+    <h1 class="login-title">🔥 RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v6.0 COMPLETO</span></h1>
     <p class="login-sub">Entre com suas credenciais</p>
     <form onsubmit="login(event)">
       <div class="form-group">
@@ -104,7 +104,7 @@ input[type="file"]{display:none;}
 
 <div class="admin-screen" id="admin-screen">
   <div class="header">
-    <h1 class="header-title">🔥 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v5.2 Firebase (API CORRIGIDA!)</span></h1>
+    <h1 class="header-title">🔥 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v6.0 COMPLETO!</span></h1>
     <button class="btn-logout" onclick="logout()">Sair</button>
   </div>
 
@@ -328,7 +328,390 @@ window.switchTab = function(tab) {
 
 async function loadContent() {
   if (currentTab === 'resumos') loadResumos();
-  else document.getElementById('content').innerHTML = '<div class="empty">Selecione "Resumos" para usar o editor</div>';
+  else if (currentTab === 'templates') loadTemplates();
+  else if (currentTab === 'frases') loadFrases();
+  else if (currentTab === 'checklists') loadChecklists();
+  else document.getElementById('content').innerHTML = '<div class="empty">Selecione uma aba</div>';
+}
+
+// TEMPLATES
+async function loadTemplates() {
+  try {
+    const q = window.query(window.collection(window.db, 'templates'), window.orderBy('createdAt', 'desc'));
+    const snapshot = await window.getDocs(q);
+    
+    let html = '<button class="btn-new" onclick="openModalTemplate()">+ Novo Template</button>';
+    
+    if (snapshot.empty) {
+      html += '<div class="empty">Nenhum template criado ainda</div>';
+    } else {
+      html += '<div class="item-list">';
+      snapshot.forEach(doc => {
+        const t = doc.data();
+        html += `
+          <div class="item">
+            <div class="item-info">
+              <h3>${t.nome || 'Sem nome'}</h3>
+              <p>${t.especialidade || 'Sem especialidade'} • ${t.texto?.length || 0} caracteres</p>
+            </div>
+            <div class="item-actions">
+              <button class="btn-sm btn-edit" onclick='editTemplate("${doc.id}")'>Editar</button>
+              <button class="btn-sm btn-delete" onclick='deleteTemplate("${doc.id}")'>Excluir</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+    
+    document.getElementById('content').innerHTML = html;
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao carregar templates: ' + error.message, true);
+  }
+}
+
+window.openModalTemplate = function(docId = null) {
+  const modal = `
+    <div class="modal show" id="modal-temp">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">${docId ? 'Editar' : 'Novo'} Template</h2>
+          <button class="btn-close" onclick="document.getElementById('modal-temp').remove()">×</button>
+        </div>
+        <form onsubmit="saveTemplate(event, '${docId || ''}')">
+          <div class="form-group">
+            <label class="form-label">📌 Nome *</label>
+            <input type="text" class="form-input" id="temp-nome" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">🏥 Especialidade</label>
+            <select id="temp-spec">
+              <option value="">Selecione...</option>
+              <option value="neuro">Neurorradiologia</option>
+              <option value="musculo">Musculoesquelético</option>
+              <option value="torax">Tórax</option>
+              <option value="cardio">Cardíaca</option>
+              <option value="abdominal">Abdominal</option>
+              <option value="gi">Gastrointestinal</option>
+              <option value="gu">Geniturinário</option>
+              <option value="vascular">Vascular</option>
+              <option value="mama">Mama</option>
+              <option value="pediatria">Pediatria</option>
+              <option value="interv">Intervencionista</option>
+              <option value="emergencia">Emergência</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">📄 Texto do Template *</label>
+            <textarea id="temp-texto" required></textarea>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+            <button type="submit" class="btn-primary">💾 Salvar</button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('modal-temp').remove()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modal);
+  
+  if (docId) {
+    window.getDocs(window.collection(window.db, 'templates')).then(snapshot => {
+      snapshot.forEach(d => {
+        if (d.id === docId) {
+          const data = d.data();
+          document.getElementById('temp-nome').value = data.nome || '';
+          document.getElementById('temp-spec').value = data.especialidade || '';
+          document.getElementById('temp-texto').value = data.texto || '';
+        }
+      });
+    });
+  }
+}
+
+window.editTemplate = function(id) {
+  openModalTemplate(id);
+}
+
+window.saveTemplate = async function(e, id) {
+  e.preventDefault();
+  
+  const dados = {
+    nome: document.getElementById('temp-nome').value.trim(),
+    especialidade: document.getElementById('temp-spec').value,
+    texto: document.getElementById('temp-texto').value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  
+  try {
+    if (id) {
+      await window.updateDoc(window.doc(window.db, 'templates', id), dados);
+    } else {
+      await window.addDoc(window.collection(window.db, 'templates'), dados);
+    }
+    
+    showToast('✓ Template salvo!');
+    document.getElementById('modal-temp').remove();
+    loadTemplates();
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao salvar: ' + error.message, true);
+  }
+}
+
+window.deleteTemplate = async function(id) {
+  if (!confirm('Excluir template?')) return;
+  try {
+    await window.deleteDoc(window.doc(window.db, 'templates', id));
+    showToast('✓ Deletado!');
+    loadTemplates();
+  } catch (error) {
+    showToast('Erro: ' + error.message, true);
+  }
+}
+
+// FRASES
+async function loadFrases() {
+  try {
+    const q = window.query(window.collection(window.db, 'frases'), window.orderBy('createdAt', 'desc'));
+    const snapshot = await window.getDocs(q);
+    
+    let html = '<button class="btn-new" onclick="openModalFrase()">+ Nova Frase</button>';
+    
+    if (snapshot.empty) {
+      html += '<div class="empty">Nenhuma frase criada ainda</div>';
+    } else {
+      html += '<div class="item-list">';
+      snapshot.forEach(doc => {
+        const f = doc.data();
+        html += `
+          <div class="item">
+            <div class="item-info">
+              <h3>${f.categoria || 'Sem categoria'}</h3>
+              <p>${f.texto?.substring(0, 100) || 'Sem texto'}...</p>
+            </div>
+            <div class="item-actions">
+              <button class="btn-sm btn-edit" onclick='editFrase("${doc.id}")'>Editar</button>
+              <button class="btn-sm btn-delete" onclick='deleteFrase("${doc.id}")'>Excluir</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+    
+    document.getElementById('content').innerHTML = html;
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao carregar frases: ' + error.message, true);
+  }
+}
+
+window.openModalFrase = function(docId = null) {
+  const modal = `
+    <div class="modal show" id="modal-frase">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">${docId ? 'Editar' : 'Nova'} Frase</h2>
+          <button class="btn-close" onclick="document.getElementById('modal-frase').remove()">×</button>
+        </div>
+        <form onsubmit="saveFrase(event, '${docId || ''}')">
+          <div class="form-group">
+            <label class="form-label">📁 Categoria *</label>
+            <input type="text" class="form-input" id="frase-cat" required placeholder="Ex: Achados Normais, Limitações...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">💬 Texto da Frase *</label>
+            <textarea id="frase-texto" required></textarea>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+            <button type="submit" class="btn-primary">💾 Salvar</button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('modal-frase').remove()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modal);
+  
+  if (docId) {
+    window.getDocs(window.collection(window.db, 'frases')).then(snapshot => {
+      snapshot.forEach(d => {
+        if (d.id === docId) {
+          const data = d.data();
+          document.getElementById('frase-cat').value = data.categoria || '';
+          document.getElementById('frase-texto').value = data.texto || '';
+        }
+      });
+    });
+  }
+}
+
+window.editFrase = function(id) {
+  openModalFrase(id);
+}
+
+window.saveFrase = async function(e, id) {
+  e.preventDefault();
+  
+  const dados = {
+    categoria: document.getElementById('frase-cat').value.trim(),
+    texto: document.getElementById('frase-texto').value.trim(),
+    createdAt: new Date().toISOString()
+  };
+  
+  try {
+    if (id) {
+      await window.updateDoc(window.doc(window.db, 'frases', id), dados);
+    } else {
+      await window.addDoc(window.collection(window.db, 'frases'), dados);
+    }
+    
+    showToast('✓ Frase salva!');
+    document.getElementById('modal-frase').remove();
+    loadFrases();
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao salvar: ' + error.message, true);
+  }
+}
+
+window.deleteFrase = async function(id) {
+  if (!confirm('Excluir frase?')) return;
+  try {
+    await window.deleteDoc(window.doc(window.db, 'frases', id));
+    showToast('✓ Deletado!');
+    loadFrases();
+  } catch (error) {
+    showToast('Erro: ' + error.message, true);
+  }
+}
+
+// CHECKLISTS
+async function loadChecklists() {
+  try {
+    const q = window.query(window.collection(window.db, 'checklists'), window.orderBy('createdAt', 'desc'));
+    const snapshot = await window.getDocs(q);
+    
+    let html = '<button class="btn-new" onclick="openModalChecklist()">+ Novo Checklist</button>';
+    
+    if (snapshot.empty) {
+      html += '<div class="empty">Nenhum checklist criado ainda</div>';
+    } else {
+      html += '<div class="item-list">';
+      snapshot.forEach(doc => {
+        const c = doc.data();
+        html += `
+          <div class="item">
+            <div class="item-info">
+              <h3>${c.nome || 'Sem nome'}</h3>
+              <p>${c.exame || 'Sem exame'} • ${c.itens?.length || 0} itens</p>
+            </div>
+            <div class="item-actions">
+              <button class="btn-sm btn-edit" onclick='editChecklist("${doc.id}")'>Editar</button>
+              <button class="btn-sm btn-delete" onclick='deleteChecklist("${doc.id}")'>Excluir</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+    }
+    
+    document.getElementById('content').innerHTML = html;
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao carregar checklists: ' + error.message, true);
+  }
+}
+
+window.openModalChecklist = function(docId = null) {
+  const modal = `
+    <div class="modal show" id="modal-check">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">${docId ? 'Editar' : 'Novo'} Checklist</h2>
+          <button class="btn-close" onclick="document.getElementById('modal-check').remove()">×</button>
+        </div>
+        <form onsubmit="saveChecklist(event, '${docId || ''}')">
+          <div class="form-group">
+            <label class="form-label">📌 Nome *</label>
+            <input type="text" class="form-input" id="check-nome" required placeholder="Ex: Checklist RM Abdome">
+          </div>
+          <div class="form-group">
+            <label class="form-label">🔬 Tipo de Exame *</label>
+            <input type="text" class="form-input" id="check-exame" required placeholder="Ex: RM, TC, RX...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">✅ Itens (um por linha) *</label>
+            <textarea id="check-itens" required placeholder="Protocolo adequado&#10;Qualidade técnica&#10;Artefatos..."></textarea>
+          </div>
+          <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+            <button type="submit" class="btn-primary">💾 Salvar</button>
+            <button type="button" class="btn-secondary" onclick="document.getElementById('modal-check').remove()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modal);
+  
+  if (docId) {
+    window.getDocs(window.collection(window.db, 'checklists')).then(snapshot => {
+      snapshot.forEach(d => {
+        if (d.id === docId) {
+          const data = d.data();
+          document.getElementById('check-nome').value = data.nome || '';
+          document.getElementById('check-exame').value = data.exame || '';
+          document.getElementById('check-itens').value = (data.itens || []).join('\n');
+        }
+      });
+    });
+  }
+}
+
+window.editChecklist = function(id) {
+  openModalChecklist(id);
+}
+
+window.saveChecklist = async function(e, id) {
+  e.preventDefault();
+  
+  const itensText = document.getElementById('check-itens').value.trim();
+  const itens = itensText.split('\n').map(i => i.trim()).filter(i => i.length > 0);
+  
+  const dados = {
+    nome: document.getElementById('check-nome').value.trim(),
+    exame: document.getElementById('check-exame').value.trim(),
+    itens: itens,
+    createdAt: new Date().toISOString()
+  };
+  
+  try {
+    if (id) {
+      await window.updateDoc(window.doc(window.db, 'checklists', id), dados);
+    } else {
+      await window.addDoc(window.collection(window.db, 'checklists'), dados);
+    }
+    
+    showToast('✓ Checklist salvo!');
+    document.getElementById('modal-check').remove();
+    loadChecklists();
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao salvar: ' + error.message, true);
+  }
+}
+
+window.deleteChecklist = async function(id) {
+  if (!confirm('Excluir checklist?')) return;
+  try {
+    await window.deleteDoc(window.doc(window.db, 'checklists', id));
+    showToast('✓ Deletado!');
+    loadChecklists();
+  } catch (error) {
+    showToast('Erro: ' + error.message, true);
+  }
 }
 
 // RESUMOS
