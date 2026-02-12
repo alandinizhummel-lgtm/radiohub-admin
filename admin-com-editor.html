@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadioHub Admin - Com Editor</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b0c10;color:#e2e5f0;min-height:100vh;}
+
+/* LOGIN */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.login-box{background:#14161f;border:1px solid #222533;border-radius:12px;padding:2.5rem;width:100%;max-width:420px;}
+.login-title{font-size:1.8rem;margin-bottom:0.5rem;color:#fff;}
+.login-sub{font-size:0.9rem;color:#8d94b0;margin-bottom:2rem;}
+
+/* ADMIN */
+.admin-screen{display:none;padding:2rem;}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid #222533;}
+.header-title{font-size:1.8rem;font-weight:700;color:#fff;}
+.btn-logout{background:#e05c5c;color:#fff;padding:0.6rem 1.2rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
+
+/* TABS */
+.tabs{display:flex;gap:0.5rem;margin-bottom:2rem;border-bottom:1px solid #222533;}
+.tab{padding:0.75rem 1.5rem;background:none;border:none;color:#8d94b0;font-size:0.9rem;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;font-weight:600;}
+.tab.active{color:#4f8ef7;border-bottom-color:#4f8ef7;}
+.tab:hover{color:#c0c5d8;}
+
+/* CONTENT */
+.content{background:#14161f;border:1px solid #222533;border-radius:12px;padding:2rem;}
+.btn-new{background:#3fc983;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;margin-bottom:1.5rem;}
+.btn-new:hover{background:#32a56b;}
+
+/* ITEMS */
+.item-list{display:flex;flex-direction:column;gap:0.75rem;}
+.item{background:#1a1d28;border:1px solid #2d3044;border-radius:8px;padding:1rem;display:flex;justify-content:space-between;align-items:center;}
+.item-info h3{font-size:1rem;color:#fff;margin-bottom:0.25rem;}
+.item-info p{font-size:0.85rem;color:#8d94b0;}
+.item-actions{display:flex;gap:0.5rem;}
+.btn-sm{padding:0.4rem 0.8rem;font-size:0.8rem;border-radius:6px;border:none;cursor:pointer;font-weight:600;}
+.btn-edit{background:#f0944d;color:#fff;}
+.btn-delete{background:#e05c5c;color:#fff;}
+
+/* FORMS */
+.form-group{margin-bottom:1.2rem;}
+.form-label{display:block;font-size:0.85rem;color:#c0c5d8;margin-bottom:0.5rem;font-weight:600;}
+.form-input,select,textarea{width:100%;background:#1a1d28;border:1px solid #2d3044;border-radius:8px;padding:0.7rem 1rem;color:#fff;font-size:0.95rem;}
+.form-input:focus,select:focus,textarea:focus{outline:none;border-color:#4f8ef7;}
+textarea{min-height:200px;font-family:monospace;resize:vertical;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:1000;padding:2rem;}
+.modal.show{display:flex;}
+.modal-content{background:#14161f;border:1px solid #222533;border-radius:12px;padding:2rem;max-width:1200px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+.modal-title{font-size:1.4rem;color:#fff;}
+.btn-close{background:none;border:none;color:#8d94b0;font-size:1.5rem;cursor:pointer;}
+
+/* EDITOR */
+.toolbar{background:#1a1d28;border:1px solid #2d3044;border-bottom:none;border-radius:8px 8px 0 0;padding:0.8rem;display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;}
+.toolbar button{background:#2d3044;border:1px solid #3d4354;border-radius:6px;padding:0.5rem 0.8rem;color:#e2e5f0;font-size:0.85rem;cursor:pointer;font-weight:600;min-width:36px;}
+.toolbar button:hover{background:#3d4354;border-color:#4f8ef7;}
+.toolbar .sep{width:1px;height:25px;background:#3d4354;margin:0 0.2rem;}
+.toolbar input[type="color"]{width:45px;height:34px;border:1px solid #3d4354;border-radius:6px;cursor:pointer;padding:2px;background:#2d3044;}
+.toolbar select{padding:0.5rem 0.7rem;font-size:0.85rem;font-weight:600;background:#2d3044;border:1px solid #3d4354;color:#e2e5f0;}
+.editor{min-height:400px;max-height:600px;overflow-y:auto;padding:2rem;border:1px solid #2d3044;border-radius:0 0 8px 8px;background:#1a1d28;font-size:15px;line-height:1.7;color:#e2e5f0;outline:none;}
+.editor:focus{border-color:#4f8ef7;}
+.editor[contenteditable]:empty:before{content:'Cole do Notion ou comece a digitar...';color:#6b7388;font-style:italic;}
+.editor h1{font-size:2em;margin:0.67em 0;color:#fff;}
+.editor h2{font-size:1.5em;margin:0.75em 0;color:#fff;}
+.editor h3{font-size:1.17em;margin:0.83em 0;color:#fff;}
+.editor table{border-collapse:collapse;width:100%;margin:1.5em 0;}
+.editor table td,.editor table th{border:1px solid #3d4354;padding:10px;}
+.editor table th{background-color:#2d3044;}
+.editor img{max-width:100%;border-radius:8px;margin:1em 0;}
+
+.btn-primary{background:#4f8ef7;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:0.95rem;width:100%;}
+.btn-primary:hover{background:#3d7ce3;}
+.btn-secondary{background:#2d3044;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:0.95rem;}
+.btn-secondary:hover{background:#3d4354;}
+
+.empty{text-align:center;padding:3rem;color:#6b7388;}
+.toast{display:none;position:fixed;bottom:2rem;right:2rem;background:#3fc983;color:#fff;padding:1rem 1.5rem;border-radius:8px;font-weight:600;z-index:9999;}
+.toast.show{display:block;}
+input[type="file"]{display:none;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <h1 class="login-title">RadioHub Admin</h1>
+    <p class="login-sub">Entre com suas credenciais</p>
+    <form onsubmit="login(event)">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="email" required value="admin@radiohub.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" class="form-input" id="password" required value="admin123">
+      </div>
+      <button type="submit" class="btn-primary">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="admin-screen" id="admin-screen">
+  <div class="header">
+    <h1 class="header-title">📝 RadioHub Admin</h1>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('templates')">Templates</button>
+    <button class="tab" onclick="switchTab('frases')">Frases</button>
+    <button class="tab" onclick="switchTab('checklists')">Checklists</button>
+    <button class="tab" onclick="switchTab('resumos')">📝 Resumos (Editor)</button>
+  </div>
+
+  <div class="content" id="content"></div>
+</div>
+
+<!-- MODAL RESUMO COM EDITOR -->
+<div class="modal" id="modal-resumo">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-resumo-title">Novo Resumo</h2>
+      <button class="btn-close" onclick="closeModal('resumo')">×</button>
+    </div>
+    <form onsubmit="saveResumo(event)">
+      <input type="hidden" id="resumo-id">
+      
+      <div class="form-group">
+        <label class="form-label">📌 Título *</label>
+        <input type="text" class="form-input" id="resumo-titulo" required>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">🏥 Especialidade *</label>
+          <select id="resumo-spec" required>
+            <option value="">Selecione...</option>
+            <option value="neuro">Neurorradiologia</option>
+            <option value="musculo">Musculoesquelético</option>
+            <option value="torax">Tórax</option>
+            <option value="cardio">Cardíaca</option>
+            <option value="abdominal">Abdominal</option>
+            <option value="gi">Gastrointestinal</option>
+            <option value="gu">Geniturinário</option>
+            <option value="vascular">Vascular</option>
+            <option value="mama">Mama</option>
+            <option value="pediatria">Pediatria</option>
+            <option value="interv">Intervencionista</option>
+            <option value="emergencia">Emergência</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Tags (separadas por vírgula)</label>
+          <input type="text" class="form-input" id="resumo-tags" placeholder="Ex: RM, Contraste, Lesões">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">📄 Conteúdo (Cole do Notion) *</label>
+        
+        <div class="toolbar">
+          <button type="button" onclick="execCmd('bold')"><strong>B</strong></button>
+          <button type="button" onclick="execCmd('italic')"><em>I</em></button>
+          <button type="button" onclick="execCmd('underline')"><u>U</u></button>
+          
+          <div class="sep"></div>
+          
+          <select onchange="mudaTamanho(this.value)">
+            <option value="">Tamanho</option>
+            <option value="1">Pequeno</option>
+            <option value="3">Normal</option>
+            <option value="5">Grande</option>
+            <option value="7">Enorme</option>
+          </select>
+          
+          <div class="sep"></div>
+          
+          <button type="button" onclick="execCmd('formatBlock','<h1>')">H1</button>
+          <button type="button" onclick="execCmd('formatBlock','<h2>')">H2</button>
+          <button type="button" onclick="execCmd('formatBlock','<h3>')">H3</button>
+          <button type="button" onclick="execCmd('formatBlock','<p>')">P</button>
+          
+          <div class="sep"></div>
+          
+          <label style="cursor:pointer;display:flex;align-items:center;background:#2d3044;border:1px solid #3d4354;border-radius:6px;padding:0.5rem 0.8rem;color:#e2e5f0;font-weight:600;">
+            🎨
+            <input type="color" id="textColor" onchange="mudaCorTexto(this.value)">
+          </label>
+          
+          <label style="cursor:pointer;display:flex;align-items:center;background:#2d3044;border:1px solid #3d4354;border-radius:6px;padding:0.5rem 0.8rem;color:#e2e5f0;font-weight:600;">
+            🖍️
+            <input type="color" id="bgColor" onchange="mudaCorFundo(this.value)">
+          </label>
+          
+          <div class="sep"></div>
+          
+          <button type="button" onclick="execCmd('insertUnorderedList')">• Lista</button>
+          <button type="button" onclick="execCmd('insertOrderedList')">1. Lista</button>
+          
+          <div class="sep"></div>
+          
+          <button type="button" onclick="insertLink()">🔗</button>
+          <button type="button" onclick="document.getElementById('imageInput').click()">🖼️</button>
+          <button type="button" onclick="insertTable()">📊</button>
+          <button type="button" onclick="insertLine()">➖</button>
+          
+          <div class="sep"></div>
+          
+          <button type="button" onclick="execCmd('undo')">↶</button>
+          <button type="button" onclick="execCmd('redo')">↷</button>
+          
+          <div class="sep"></div>
+          
+          <button type="button" onclick="execCmd('removeFormat')">✕</button>
+        </div>
+        
+        <div class="editor" id="editor" contenteditable="true"></div>
+        <input type="file" id="imageInput" accept="image/*" onchange="insertImage(this)">
+      </div>
+      
+      <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+        <button type="submit" class="btn-primary">💾 Salvar Resumo</button>
+        <button type="button" class="btn-secondary" onclick="closeModal('resumo')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ Salvo com sucesso!</div>
+
+<script>
+// CONFIG SUPABASE
+const SUPABASE_URL = 'https://bfvwubfjvktmsxznxgcr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmdnd1YmZqdmt0bXN4em54Z2NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5NDQ3NTUsImV4cCI6MjA1NDUyMDc1NX0.cB99JLXy8kOdxXpYh7RB9kl_zBWwB6cI4Bfd7A2JKNY';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentTab = 'templates';
+let currentUser = null;
+const editor = () => document.getElementById('editor');
+
+// LOGIN
+async function login(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  
+  if (error) {
+    alert('Erro: ' + error.message);
+    return;
+  }
+  
+  currentUser = data.user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-screen').style.display = 'block';
+  loadContent();
+}
+
+function logout() {
+  supabase.auth.signOut();
+  location.reload();
+}
+
+// TABS
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  loadContent();
+}
+
+async function loadContent() {
+  if (currentTab === 'resumos') loadResumos();
+  else document.getElementById('content').innerHTML = '<div class="empty">Selecione "Resumos" para usar o editor</div>';
+}
+
+// RESUMOS
+async function loadResumos() {
+  const { data, error } = await supabase.from('resumos').select('*').order('created_at', { ascending: false });
+  
+  let html = '<button class="btn-new" onclick="openModalResumo()">+ Novo Resumo com Editor</button>';
+  
+  if (!data || data.length === 0) {
+    html += '<div class="empty">Nenhum resumo criado ainda</div>';
+  } else {
+    html += '<div class="item-list">';
+    data.forEach(r => {
+      html += `
+        <div class="item">
+          <div class="item-info">
+            <h3>${r.name || r.titulo || 'Sem título'}</h3>
+            <p>${r.spec || 'Sem especialidade'} • ${r.palavras || 0} palavras</p>
+          </div>
+          <div class="item-actions">
+            <button class="btn-sm btn-edit" onclick='editResumo(${JSON.stringify(r)})'>Editar</button>
+            <button class="btn-sm btn-delete" onclick="deleteResumo('${r.id}')">Excluir</button>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+  
+  document.getElementById('content').innerHTML = html;
+}
+
+function openModalResumo(data = null) {
+  if (data) {
+    document.getElementById('modal-resumo-title').textContent = 'Editar Resumo';
+    document.getElementById('resumo-id').value = data.id;
+    document.getElementById('resumo-titulo').value = data.name || data.titulo || '';
+    document.getElementById('resumo-spec').value = data.spec || '';
+    document.getElementById('resumo-tags').value = (data.tags || []).join(', ');
+    editor().innerHTML = data.body || '';
+  } else {
+    document.getElementById('modal-resumo-title').textContent = 'Novo Resumo';
+    document.getElementById('resumo-id').value = '';
+    document.getElementById('resumo-titulo').value = '';
+    document.getElementById('resumo-spec').value = '';
+    document.getElementById('resumo-tags').value = '';
+    editor().innerHTML = '';
+  }
+  document.getElementById('modal-resumo').classList.add('show');
+}
+
+function editResumo(data) {
+  openModalResumo(data);
+}
+
+async function saveResumo(e) {
+  e.preventDefault();
+  
+  const id = document.getElementById('resumo-id').value;
+  const titulo = document.getElementById('resumo-titulo').value.trim();
+  const spec = document.getElementById('resumo-spec').value;
+  const tagsStr = document.getElementById('resumo-tags').value;
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()) : [];
+  const body = editor().innerHTML;
+  const texto = editor().innerText.trim();
+  const palavras = texto.split(/\s+/).filter(w => w.length > 0).length;
+  
+  const dados = {
+    name: titulo,
+    titulo: titulo,
+    spec: spec,
+    tags: tags,
+    body: body,
+    texto: texto,
+    palavras: palavras
+  };
+  
+  let result;
+  if (id) {
+    result = await supabase.from('resumos').update(dados).eq('id', id);
+  } else {
+    result = await supabase.from('resumos').insert(dados);
+  }
+  
+  if (result.error) {
+    alert('Erro: ' + result.error.message);
+    return;
+  }
+  
+  showToast();
+  closeModal('resumo');
+  loadResumos();
+}
+
+async function deleteResumo(id) {
+  if (!confirm('Excluir resumo?')) return;
+  await supabase.from('resumos').delete().eq('id', id);
+  loadResumos();
+}
+
+function closeModal(type) {
+  document.getElementById(`modal-${type}`).classList.remove('show');
+}
+
+function showToast() {
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// EDITOR
+function execCmd(cmd, value = null) {
+  document.execCommand(cmd, false, value);
+  editor().focus();
+}
+
+function mudaTamanho(size) {
+  if (size) execCmd('fontSize', size);
+}
+
+function mudaCorTexto(cor) {
+  execCmd('foreColor', cor);
+}
+
+function mudaCorFundo(cor) {
+  execCmd('backColor', cor);
+}
+
+function insertLink() {
+  const url = prompt('Cole a URL:');
+  if (url) execCmd('createLink', url);
+}
+
+function insertImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    execCmd('insertImage', e.target.result);
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function insertTable() {
+  const rows = prompt('Linhas:', '3');
+  const cols = prompt('Colunas:', '3');
+  if (!rows || !cols) return;
+  
+  let html = '<table style="border-collapse:collapse;width:100%;margin:1.5rem 0;border:1px solid #3d4354;">';
+  for (let i = 0; i < rows; i++) {
+    html += '<tr>';
+    for (let j = 0; j < cols; j++) {
+      const style = 'padding:10px;border:1px solid #3d4354;';
+      html += i === 0 ? `<th style="${style}background:#2d3044;">Título</th>` : `<td style="${style}">Célula</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</table><p><br></p>';
+  execCmd('insertHTML', html);
+}
+
+function insertLine() {
+  execCmd('insertHTML', '<hr style="border:none;border-top:2px solid #3d4354;margin:2rem 0;"><p><br></p>');
+}
+
+// Atalhos
+document.addEventListener('DOMContentLoaded', () => {
+  const ed = editor();
+  if (ed) {
+    ed.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); execCmd('bold'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); execCmd('italic'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); execCmd('underline'); }
+    });
+  }
+});
+</script>
+
+</body>
+</html>
