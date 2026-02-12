@@ -92,7 +92,7 @@ input[type="file"]{display:none;}
 <!-- LOGIN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
-    <h1 class="login-title">RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v2.1</span></h1>
+    <h1 class="login-title">RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v2.2</span></h1>
     <p class="login-sub">Entre com suas credenciais</p>
     <form onsubmit="login(event)">
       <div class="form-group">
@@ -111,7 +111,7 @@ input[type="file"]{display:none;}
 <!-- ADMIN -->
 <div class="admin-screen" id="admin-screen">
   <div class="header">
-    <h1 class="header-title">📝 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v2.1</span></h1>
+    <h1 class="header-title">📝 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v2.2</span></h1>
     <button class="btn-logout" onclick="logout()">Sair</button>
   </div>
 
@@ -240,18 +240,12 @@ input[type="file"]{display:none;}
 <div class="toast" id="toast">✓ Salvo com sucesso!</div>
 
 <script>
-// USA O SUPABASE JÁ CARREGADO (não declara de novo)
-const SUPABASE_URL = 'https://bfvwubfjvktmsxznxgcr.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmdnd1YmZqdmt0bXN4em54Z2NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5NDQ3NTUsImV4cCI6MjA1NDUyMDc1NX0.cB99JLXy8kOdxXpYh7RB9kl_zBWwB6cI4Bfd7A2JKNY';
+// CONFIGURAÇÃO SUPABASE (SEM CONFLITOS!)
+const SB_URL = 'https://bfvwubfjvktmsxznxgcr.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmdnd1YmZqdmt0bXN4em54Z2NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5NDQ3NTUsImV4cCI6MjA1NDUyMDc1NX0.cB99JLXy8kOdxXpYh7RB9kl_zBWwB6cI4Bfd7A2JKNY';
 
-// Cria client SOMENTE se não existir
-let supabase;
-if (window.supabaseClient) {
-  supabase = window.supabaseClient;
-} else {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  window.supabaseClient = supabase;
-}
+// Cliente Supabase (NOVO NOME - SEM CONFLITO!)
+window.sb = window.supabase.createClient(SB_URL, SB_KEY);
 
 let currentTab = 'templates';
 let currentUser = null;
@@ -263,7 +257,7 @@ async function login(e) {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await window.sb.auth.signInWithPassword({ email, password });
   
   if (error) {
     alert('Erro: ' + error.message);
@@ -277,7 +271,7 @@ async function login(e) {
 }
 
 function logout() {
-  supabase.auth.signOut();
+  window.sb.auth.signOut();
   location.reload();
 }
 
@@ -296,7 +290,7 @@ async function loadContent() {
 
 // RESUMOS
 async function loadResumos() {
-  const { data, error } = await supabase.from('resumos').select('*').order('created_at', { ascending: false });
+  const { data, error } = await window.sb.from('resumos').select('*').order('created_at', { ascending: false });
   
   let html = '<button class="btn-new" onclick="openModalResumo()">+ Novo Resumo com Editor</button>';
   
@@ -371,9 +365,9 @@ async function saveResumo(e) {
   
   let result;
   if (id) {
-    result = await supabase.from('resumos').update(dados).eq('id', id);
+    result = await window.sb.from('resumos').update(dados).eq('id', id);
   } else {
-    result = await supabase.from('resumos').insert(dados);
+    result = await window.sb.from('resumos').insert(dados);
   }
   
   if (result.error) {
@@ -388,7 +382,7 @@ async function saveResumo(e) {
 
 async function deleteResumo(id) {
   if (!confirm('Excluir resumo?')) return;
-  await supabase.from('resumos').delete().eq('id', id);
+  await window.sb.from('resumos').delete().eq('id', id);
   loadResumos();
 }
 
