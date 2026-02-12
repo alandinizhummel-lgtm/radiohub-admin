@@ -3,29 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RadioHub Admin - Com Editor</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+<title>RadioHub Admin - Firebase</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0b0c10;color:#e2e5f0;min-height:100vh;}
 
-/* ADMIN */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.login-box{background:#14161f;border:1px solid #222533;border-radius:12px;padding:2.5rem;width:100%;max-width:420px;}
+.login-title{font-size:1.8rem;margin-bottom:0.5rem;color:#fff;}
+.login-sub{font-size:0.9rem;color:#8d94b0;margin-bottom:2rem;}
+
 .admin-screen{display:none;padding:2rem;}
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1rem;border-bottom:2px solid #222533;}
 .header-title{font-size:1.8rem;font-weight:700;color:#fff;}
+.btn-logout{background:#e05c5c;color:#fff;padding:0.6rem 1.2rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;}
 
-/* TABS */
 .tabs{display:flex;gap:0.5rem;margin-bottom:2rem;border-bottom:1px solid #222533;}
 .tab{padding:0.75rem 1.5rem;background:none;border:none;color:#8d94b0;font-size:0.9rem;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;font-weight:600;}
 .tab.active{color:#4f8ef7;border-bottom-color:#4f8ef7;}
 .tab:hover{color:#c0c5d8;}
 
-/* CONTENT */
 .content{background:#14161f;border:1px solid #222533;border-radius:12px;padding:2rem;}
 .btn-new{background:#3fc983;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;border:none;cursor:pointer;font-weight:600;margin-bottom:1.5rem;}
 .btn-new:hover{background:#32a56b;}
 
-/* ITEMS */
 .item-list{display:flex;flex-direction:column;gap:0.75rem;}
 .item{background:#1a1d28;border:1px solid #2d3044;border-radius:8px;padding:1rem;display:flex;justify-content:space-between;align-items:center;}
 .item-info h3{font-size:1rem;color:#fff;margin-bottom:0.25rem;}
@@ -35,7 +36,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-edit{background:#f0944d;color:#fff;}
 .btn-delete{background:#e05c5c;color:#fff;}
 
-/* FORMS */
 .form-group{margin-bottom:1.2rem;}
 .form-label{display:block;font-size:0.85rem;color:#c0c5d8;margin-bottom:0.5rem;font-weight:600;}
 .form-input,select,textarea{width:100%;background:#1a1d28;border:1px solid #2d3044;border-radius:8px;padding:0.7rem 1rem;color:#fff;font-size:0.95rem;}
@@ -43,7 +43,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 textarea{min-height:200px;font-family:monospace;resize:vertical;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 
-/* MODAL */
 .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;z-index:1000;padding:2rem;}
 .modal.show{display:flex;}
 .modal-content{background:#14161f;border:1px solid #222533;border-radius:12px;padding:2rem;max-width:1200px;width:100%;max-height:90vh;overflow-y:auto;}
@@ -51,7 +50,6 @@ textarea{min-height:200px;font-family:monospace;resize:vertical;}
 .modal-title{font-size:1.4rem;color:#fff;}
 .btn-close{background:none;border:none;color:#8d94b0;font-size:1.5rem;cursor:pointer;}
 
-/* EDITOR */
 .toolbar{background:#1a1d28;border:1px solid #2d3044;border-bottom:none;border-radius:8px 8px 0 0;padding:0.8rem;display:flex;gap:0.4rem;flex-wrap:wrap;align-items:center;}
 .toolbar button{background:#2d3044;border:1px solid #3d4354;border-radius:6px;padding:0.5rem 0.8rem;color:#e2e5f0;font-size:0.85rem;cursor:pointer;font-weight:600;min-width:36px;}
 .toolbar button:hover{background:#3d4354;border-color:#4f8ef7;}
@@ -77,33 +75,57 @@ textarea{min-height:200px;font-family:monospace;resize:vertical;}
 .empty{text-align:center;padding:3rem;color:#6b7388;}
 .toast{display:none;position:fixed;bottom:2rem;right:2rem;background:#3fc983;color:#fff;padding:1rem 1.5rem;border-radius:8px;font-weight:600;z-index:9999;}
 .toast.show{display:block;}
+.toast.error{background:#e05c5c;}
 input[type="file"]{display:none;}
+
+.loading{text-align:center;padding:2rem;color:#8d94b0;}
 </style>
 </head>
 <body>
 
-<!-- TELA DE ADMIN DIRETA (SEM LOGIN) -->
-<div class="admin-screen" id="admin-screen" style="display:block;">
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <h1 class="login-title">🔥 RadioHub Admin <span style="font-size:0.7rem;color:#6b7388;font-weight:400;">v5.1</span></h1>
+    <p class="login-sub">Entre com suas credenciais</p>
+    <form onsubmit="login(event)">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-input" id="email" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" class="form-input" id="password" required>
+      </div>
+      <button type="submit" class="btn-primary">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div class="admin-screen" id="admin-screen">
   <div class="header">
-    <h1 class="header-title">📝 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v4.0 - SEM LOGIN</span></h1>
+    <h1 class="header-title">🔥 RadioHub Admin <span style="font-size:0.6rem;color:#6b7388;font-weight:400;margin-left:0.5rem;">v5.1 Firebase + Auth</span></h1>
+    <button class="btn-logout" onclick="logout()">Sair</button>
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('templates')">Templates</button>
+    <button class="tab" onclick="switchTab('templates')">Templates</button>
     <button class="tab" onclick="switchTab('frases')">Frases</button>
     <button class="tab" onclick="switchTab('checklists')">Checklists</button>
-    <button class="tab" onclick="switchTab('resumos')">📝 Resumos (Editor)</button>
+    <button class="tab active" onclick="switchTab('resumos')">📝 Resumos (Editor)</button>
   </div>
 
-  <div class="content" id="content"></div>
+  <div class="content" id="content">
+    <div class="loading">⏳ Carregando...</div>
+  </div>
 </div>
 
-<!-- MODAL RESUMO COM EDITOR -->
+<!-- MODAL RESUMO -->
 <div class="modal" id="modal-resumo">
   <div class="modal-content">
     <div class="modal-header">
       <h2 class="modal-title" id="modal-resumo-title">Novo Resumo</h2>
-      <button class="btn-close" onclick="closeModal('resumo')">×</button>
+      <button class="btn-close" onclick="closeModal()">×</button>
     </div>
     <form onsubmit="saveResumo(event)">
       <input type="hidden" id="resumo-id">
@@ -204,35 +226,103 @@ input[type="file"]{display:none;}
       
       <div style="display:flex;gap:1rem;margin-top:1.5rem;">
         <button type="submit" class="btn-primary">💾 Salvar Resumo</button>
-        <button type="button" class="btn-secondary" onclick="closeModal('resumo')">Cancelar</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
       </div>
     </form>
   </div>
 </div>
 
-<div class="toast" id="toast">✓ Salvo com sucesso!</div>
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+// CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyDPrsLU4-T9WTD8u2_6njXbzcXycGdRRyU",
+  authDomain: "radiohub-5335d.firebaseapp.com",
+  projectId: "radiohub-5335d",
+  storageBucket: "radiohub-5335d.firebasestorage.app",
+  messagingSenderId: "1:838191270589",
+  appId: "1:838191270589:web:552da86f75d6741a5305d4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// GLOBALS
+window.db = db;
+window.auth = auth;
+window.collection = collection;
+window.addDoc = addDoc;
+window.getDocs = getDocs;
+window.updateDoc = updateDoc;
+window.deleteDoc = deleteDoc;
+window.doc = doc;
+window.orderBy = orderBy;
+window.query = query;
+window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+window.signOut = signOut;
+window.onAuthStateChanged = onAuthStateChanged;
+
+// CHECK AUTH
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    switchTab('resumos');
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-screen').style.display = 'none';
+  }
+});
+</script>
 
 <script>
-// CONFIGURAÇÃO SUPABASE (PROJETO: radiohub-br) - URL CORRIGIDA!
-const SB_URL = 'https://pwkwzjxwmkyzgwflnqxh.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2d2t3anp3bWt5emd3ZmxucXhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4OTE2MzQsImV4cCI6MjA4NjQ2NzYzNH0.d9WVqxNLvskhrSluI4FeBnKpYd4CBtP7vk-pl8l1Vww';
-
-// Cliente Supabase
-window.sb = window.supabase.createClient(SB_URL, SB_KEY);
-
-let currentTab = 'templates';
+let currentTab = 'resumos';
 const editor = () => document.getElementById('editor');
 
-// CARREGA CONTEÚDO DIRETO (SEM LOGIN)
-document.addEventListener('DOMContentLoaded', () => {
-  loadContent();
-});
+// LOGIN
+window.login = async function(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  
+  try {
+    await window.signInWithEmailAndPassword(window.auth, email, password);
+    // Auth state change will handle UI update
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('Erro no login: ' + error.message);
+  }
+}
+
+// LOGOUT
+window.logout = async function() {
+  try {
+    await window.signOut(window.auth);
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+}
 
 // TABS
-function switchTab(tab) {
+window.switchTab = function(tab) {
   currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if (event && event.target) {
+    event.target.classList.add('active');
+  } else {
+    // Auto-select resumos tab on load
+    tabs.forEach(t => {
+      if (t.textContent.includes('Resumos')) t.classList.add('active');
+    });
+  }
   loadContent();
 }
 
@@ -243,43 +333,59 @@ async function loadContent() {
 
 // RESUMOS
 async function loadResumos() {
-  const { data, error } = await window.sb.from('resumos').select('*').order('created_at', { ascending: false });
-  
-  let html = '<button class="btn-new" onclick="openModalResumo()">+ Novo Resumo com Editor</button>';
-  
-  if (!data || data.length === 0) {
-    html += '<div class="empty">Nenhum resumo criado ainda</div>';
-  } else {
-    html += '<div class="item-list">';
-    data.forEach(r => {
-      html += `
-        <div class="item">
-          <div class="item-info">
-            <h3>${r.name || r.titulo || 'Sem título'}</h3>
-            <p>${r.spec || 'Sem especialidade'} • ${r.palavras || 0} palavras</p>
+  try {
+    const q = window.query(window.collection(window.db, 'resumos'), window.orderBy('createdAt', 'desc'));
+    const snapshot = await window.getDocs(q);
+    
+    let html = '<button class="btn-new" onclick="openModal()">+ Novo Resumo com Editor</button>';
+    
+    if (snapshot.empty) {
+      html += '<div class="empty">Nenhum resumo criado ainda</div>';
+    } else {
+      html += '<div class="item-list">';
+      snapshot.forEach(doc => {
+        const r = doc.data();
+        html += `
+          <div class="item">
+            <div class="item-info">
+              <h3>${r.titulo || 'Sem título'}</h3>
+              <p>${r.spec || 'Sem especialidade'} • ${r.palavras || 0} palavras</p>
+            </div>
+            <div class="item-actions">
+              <button class="btn-sm btn-edit" onclick='editResumo("${doc.id}")'>Editar</button>
+              <button class="btn-sm btn-delete" onclick='deleteResumo("${doc.id}")'>Excluir</button>
+            </div>
           </div>
-          <div class="item-actions">
-            <button class="btn-sm btn-edit" onclick='editResumo(${JSON.stringify(r)})'>Editar</button>
-            <button class="btn-sm btn-delete" onclick="deleteResumo('${r.id}')">Excluir</button>
-          </div>
-        </div>
-      `;
-    });
-    html += '</div>';
+        `;
+      });
+      html += '</div>';
+    }
+    
+    document.getElementById('content').innerHTML = html;
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao carregar resumos: ' + error.message, true);
   }
-  
-  document.getElementById('content').innerHTML = html;
 }
 
-function openModalResumo(data = null) {
-  if (data) {
-    document.getElementById('modal-resumo-title').textContent = 'Editar Resumo';
-    document.getElementById('resumo-id').value = data.id;
-    document.getElementById('resumo-titulo').value = data.name || data.titulo || '';
-    document.getElementById('resumo-spec').value = data.spec || '';
-    document.getElementById('resumo-tags').value = (data.tags || []).join(', ');
-    editor().innerHTML = data.body || '';
+window.openModal = function(docId = null) {
+  if (docId) {
+    // EDIT
+    window.getDocs(window.collection(window.db, 'resumos')).then(snapshot => {
+      snapshot.forEach(d => {
+        if (d.id === docId) {
+          const data = d.data();
+          document.getElementById('modal-resumo-title').textContent = 'Editar Resumo';
+          document.getElementById('resumo-id').value = d.id;
+          document.getElementById('resumo-titulo').value = data.titulo || '';
+          document.getElementById('resumo-spec').value = data.spec || '';
+          document.getElementById('resumo-tags').value = (data.tags || []).join(', ');
+          editor().innerHTML = data.body || '';
+        }
+      });
+    });
   } else {
+    // NEW
     document.getElementById('modal-resumo-title').textContent = 'Novo Resumo';
     document.getElementById('resumo-id').value = '';
     document.getElementById('resumo-titulo').value = '';
@@ -290,11 +396,11 @@ function openModalResumo(data = null) {
   document.getElementById('modal-resumo').classList.add('show');
 }
 
-function editResumo(data) {
-  openModalResumo(data);
+window.editResumo = function(id) {
+  openModal(id);
 }
 
-async function saveResumo(e) {
+window.saveResumo = async function(e) {
   e.preventDefault();
   
   const id = document.getElementById('resumo-id').value;
@@ -307,46 +413,53 @@ async function saveResumo(e) {
   const palavras = texto.split(/\s+/).filter(w => w.length > 0).length;
   
   const dados = {
-    name: titulo,
     titulo: titulo,
     spec: spec,
     tags: tags,
     body: body,
     texto: texto,
-    palavras: palavras
+    palavras: palavras,
+    createdAt: new Date().toISOString()
   };
   
-  let result;
-  if (id) {
-    result = await window.sb.from('resumos').update(dados).eq('id', id);
-  } else {
-    result = await window.sb.from('resumos').insert(dados);
+  try {
+    if (id) {
+      await window.updateDoc(window.doc(window.db, 'resumos', id), dados);
+    } else {
+      await window.addDoc(window.collection(window.db, 'resumos'), dados);
+    }
+    
+    showToast('✓ Salvo com sucesso!');
+    closeModal();
+    loadResumos();
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao salvar: ' + error.message, true);
   }
-  
-  if (result.error) {
-    alert('Erro: ' + result.error.message);
-    return;
-  }
-  
-  showToast();
-  closeModal('resumo');
-  loadResumos();
 }
 
-async function deleteResumo(id) {
+window.deleteResumo = async function(id) {
   if (!confirm('Excluir resumo?')) return;
-  await window.sb.from('resumos').delete().eq('id', id);
-  loadResumos();
+  
+  try {
+    await window.deleteDoc(window.doc(window.db, 'resumos', id));
+    showToast('✓ Deletado!');
+    loadResumos();
+  } catch (error) {
+    console.error('Erro:', error);
+    showToast('Erro ao deletar: ' + error.message, true);
+  }
 }
 
-function closeModal(type) {
-  document.getElementById(`modal-${type}`).classList.remove('show');
+window.closeModal = function() {
+  document.getElementById('modal-resumo').classList.remove('show');
 }
 
-function showToast() {
+function showToast(msg, isError = false) {
   const toast = document.getElementById('toast');
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 // EDITOR
@@ -406,16 +519,20 @@ function insertLine() {
   execCmd('insertHTML', '<hr style="border:none;border-top:2px solid #3d4354;margin:2rem 0;"><p><br></p>');
 }
 
+window.execCmd = execCmd;
+window.mudaTamanho = mudaTamanho;
+window.mudaCorTexto = mudaCorTexto;
+window.mudaCorFundo = mudaCorFundo;
+window.insertLink = insertLink;
+window.insertImage = insertImage;
+window.insertTable = insertTable;
+window.insertLine = insertLine;
+
 // Atalhos
-document.addEventListener('DOMContentLoaded', () => {
-  const ed = editor();
-  if (ed) {
-    ed.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); execCmd('bold'); }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); execCmd('italic'); }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); execCmd('underline'); }
-    });
-  }
+editor().addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); execCmd('bold'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); execCmd('italic'); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'u') { e.preventDefault(); execCmd('underline'); }
 });
 </script>
 
